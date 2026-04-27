@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from flask import Flask, jsonify, request, abort
 
 app = Flask(__name__)
@@ -22,7 +24,15 @@ def create_todo():
     data = request.get_json()
     if not data or not data.get("title"):
         abort(400, description="title is required")
-    todo = {"id": next_id, "title": data["title"], "done": False}
+    title = data["title"].strip()
+    if not title:
+        abort(400, description="title cannot be blank")
+    todo = {
+        "id": next_id,
+        "title": title,
+        "completed": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
     next_id += 1
     todos.append(todo)
     return jsonify(todo), 201
@@ -45,9 +55,12 @@ def update_todo(todo_id):
     if not data:
         abort(400, description="request body is required")
     if "title" in data:
-        todo["title"] = data["title"]
-    if "done" in data:
-        todo["done"] = bool(data["done"])
+        title = data["title"].strip() if isinstance(data["title"], str) else ""
+        if not title:
+            abort(400, description="title cannot be blank")
+        todo["title"] = title
+    if "completed" in data:
+        todo["completed"] = bool(data["completed"])
     return jsonify(todo), 200
 
 
